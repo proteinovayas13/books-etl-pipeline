@@ -4,9 +4,7 @@ on:
   push:
     branches: [ master, main ]
   schedule:
-    # Запуск каждый день в 00:00 UTC
     - cron: '0 0 * * *'
-  # Возможность запуска вручную из интерфейса GitHub
   workflow_dispatch:
 
 jobs:
@@ -14,34 +12,28 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      # Клонируем репозиторий
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      # Устанавливаем Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
       
-      # Устанавливаем зависимости
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
       
-      # Создаём папку data (если её нет)
       - name: Create data directory
         run: mkdir -p data
       
-      # Запускаем ETL пайплайн
       - name: Run ETL pipeline
         run: |
           python src/01_parser.py
           python src/02_create_dwh.py
           python src/03_load_data.py
       
-      # Сохраняем результаты как артефакты
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
@@ -50,12 +42,3 @@ jobs:
             books_raw.csv
             dwh_books.db
             data/*.csv
-      
-      #  Коммитим изменения обратно в репозиторий
-      - name: Commit and push if changed
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -f books_raw.csv dwh_books.db data/*.csv 2>/dev/null || true
-          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update books data [skip ci]"
-          git push
