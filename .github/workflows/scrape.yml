@@ -1,6 +1,8 @@
 name: Daily Book Scraper
 
 on:
+  push:
+    branches: [ master, main ]
   schedule:
     # Запуск каждый день в 00:00 UTC
     - cron: '0 0 * * *'
@@ -22,20 +24,24 @@ jobs:
         with:
           python-version: '3.13'
       
-      #  Устанавливаем зависимости
+      # Устанавливаем зависимости
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
       
-      #  Запускаем парсинг и загрузку в DWH
+      # Создаём папку data (если её нет)
+      - name: Create data directory
+        run: mkdir -p data
+      
+      # Запускаем ETL пайплайн
       - name: Run ETL pipeline
         run: |
           python src/01_parser.py
           python src/02_create_dwh.py
           python src/03_load_data.py
       
-      #  Сохраняем результаты как артефакты (можно скачать)
+      # Сохраняем результаты как артефакты
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
@@ -43,12 +49,13 @@ jobs:
           path: |
             books_raw.csv
             dwh_books.db
+            data/*.csv
       
-      # (Опционально) Коммитим изменения обратно в репозиторий
+      #  Коммитим изменения обратно в репозиторий
       - name: Commit and push if changed
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add -f books_raw.csv dwh_books.db
+          git add -f books_raw.csv dwh_books.db data/*.csv 2>/dev/null || true
           git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update books data [skip ci]"
           git push
