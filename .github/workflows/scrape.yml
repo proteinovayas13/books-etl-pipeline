@@ -1,8 +1,6 @@
 name: Daily Book Scraper
 
 on:
-  push:
-    branches: [ master, main ]
   schedule:
     - cron: '0 0 * * *'
   workflow_dispatch:
@@ -10,30 +8,27 @@ on:
 jobs:
   scrape-and-update:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      
+
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-      
-      - name: Create data directory
-        run: mkdir -p data
-      
+
       - name: Run ETL pipeline
         run: |
           python src/01_parser.py
           python src/02_create_dwh.py
           python src/03_load_data.py
-      
+
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
@@ -41,4 +36,3 @@ jobs:
           path: |
             books_raw.csv
             dwh_books.db
-            data/*.csv
